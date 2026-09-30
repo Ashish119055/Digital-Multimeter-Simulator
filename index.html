@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ડિજિટલ મલ્ટિમીટર સિમ્યુલેટર – ITI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Vadodara:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#DCE3E8; --panel:#F6F8F9; --ink:#182228; --muted:#566570; --line:#C2CCD3;
+  --accent:#1F5C8C; --ok:#1E7B45; --warn:#B7791F; --warnbg:#FFF4D6; --danger:#C62828;
+  --chip:#E9EEF1;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F171C; --panel:#18232A; --ink:#E5ECEF; --muted:#9AAAB4; --line:#2C3A43;
+    --accent:#6FB0E6; --ok:#4CC382; --warn:#F0B64A; --warnbg:#3A2F14; --danger:#FF6B61; --chip:#22303A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F171C; --panel:#18232A; --ink:#E5ECEF; --muted:#9AAAB4; --line:#2C3A43;
+  --accent:#6FB0E6; --ok:#4CC382; --warn:#F0B64A; --warnbg:#3A2F14; --danger:#FF6B61; --chip:#22303A;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Hind Vadodara","Noto Sans Gujarati","Shruti",system-ui,sans-serif;
+  font-size:17px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 30px}
+header h1{font-size:1.5rem;line-height:1.2;margin:4px 0 2px}
+header p{margin:0;color:var(--muted);font-size:.95rem}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:14px 0 10px;
+  background:var(--panel);padding:5px;border-radius:12px;border:1px solid var(--line)}
+.tabs button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:600;padding:9px 4px;border-radius:8px;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:0 0 auto;font:inherit;font-size:.92rem;font-weight:600;padding:8px 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer;white-space:nowrap}
+.chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative}
+.meterbox{display:flex;justify-content:center;padding:4px 0}
+#main{width:100%;max-width:440px;height:auto;display:block}
+#main [data-dial],#main [data-jack]{cursor:pointer}
+.shake{animation:shake .45s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+.hl{animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.hl,.shake,.spin{animation:none!important}}
+.spin{animation:spin 1.2s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.msg{margin:0 12px 12px;padding:9px 12px;border-radius:10px;font-size:.95rem;display:none}
+.msg.warn{display:block;background:var(--warnbg);border-left:4px solid var(--warn)}
+.msg.info{display:block;background:color-mix(in srgb,var(--accent) 12%,transparent);border-left:4px solid var(--accent)}
+.danger{position:absolute;inset:0;background:color-mix(in srgb,var(--danger) 92%,#000);color:#fff;
+  display:none;flex-direction:column;justify-content:center;padding:24px;z-index:5}
+.danger.on{display:flex}
+.danger h2{margin:0 0 8px;font-size:1.5rem}
+.danger p{margin:0 0 16px;font-size:1.05rem}
+.danger button{align-self:flex-start;font:inherit;font-weight:700;padding:10px 18px;border-radius:10px;border:0;background:#fff;color:#8E1B1B;cursor:pointer}
+.ctrl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 0}
+.ctrl button,.seg button{font:inherit;font-weight:600;font-size:.98rem;padding:11px 6px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.ctrl button:active,.seg button:active{transform:scale(.97)}
+.ctrl .big{grid-column:1/-1;background:var(--accent);color:#fff;border-color:var(--accent);font-size:1.05rem;padding:13px}
+.ctrl .big.off{background:var(--panel);color:var(--ink);border-color:var(--line)}
+.lbl{font-size:.85rem;color:var(--muted);margin:12px 0 4px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fixbtn{margin-top:10px;width:100%;font:inherit;font-weight:700;padding:11px;border-radius:10px;border:2px dashed var(--danger);
+  background:transparent;color:var(--danger);cursor:pointer}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.card h2{font-size:1.1rem;margin:0 0 8px}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.steps li:last-child{border-bottom:0}
+.steps li::before{content:counter(s);flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  font-size:.85rem;font-weight:700;background:var(--chip);color:var(--muted);margin-top:1px}
+.steps li.done::before{content:"✓";background:var(--ok);color:#fff}
+.steps li.cur{font-weight:600}
+.steps li.cur::before{background:var(--accent);color:#fff}
+.steps li.done{color:var(--muted)}
+.steps .tick{margin-left:auto;font:inherit;font-size:.82rem;padding:3px 10px;border-radius:8px;border:1px solid var(--accent);
+  background:transparent;color:var(--accent);cursor:pointer;white-space:nowrap}
+.result{border-left:5px solid var(--ok)}
+.result .val{font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+.tips{margin:0;padding-left:20px}
+.tips li{margin:4px 0}
+.opts{display:grid;gap:8px;margin-top:8px}
+.opts button{font:inherit;text-align:left;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.opts button.right{border:2px solid var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.opts button.wrong{border:2px solid var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+.fb{margin-top:10px;font-size:.95rem}
+.score{color:var(--muted);font-size:.9rem;margin-top:8px}
+.btn{font:inherit;font-weight:700;padding:10px 16px;border-radius:10px;border:0;cursor:pointer;background:var(--accent);color:#fff;margin-top:10px}
+.rules{margin:0;padding:0;list-style:none;counter-reset:r}
+.rules li{counter-increment:r;padding:10px 0 10px 40px;position:relative;border-bottom:1px solid var(--line)}
+.rules li:last-child{border-bottom:0}
+.rules li::before{content:counter(r);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:8px;
+  background:var(--danger);color:#fff;font-weight:700;display:grid;place-items:center;font-size:.9rem}
+.rules b{display:block}
+.rules span{color:var(--muted);font-size:.93rem}
+table.ref{width:100%;border-collapse:collapse;font-size:.93rem}
+table.ref td{padding:6px 4px;border-bottom:1px solid var(--line)}
+table.ref td:first-child{font-weight:700;white-space:nowrap}
+.hide{display:none!important}
+button:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:18px}
+footer a{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ડિજિટલ મલ્ટિમીટર</h1>
+    <p>વોલ્ટેજ, રેઝિસ્ટન્સ, કન્ટિન્યુઈટી અને કરંટ – સલામત રીતે માપતા શીખો.</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="learn" class="on">શીખો</button>
+    <button data-tab="practice">પ્રેક્ટિસ</button>
+    <button data-tab="safety">સલામતી</button>
+  </nav>
+
+  <div id="work">
+    <div class="chips" id="chips"></div>
+
+    <div class="stage" id="stage">
+      <div class="meterbox"><svg id="main" viewBox="0 0 380 640" aria-label="મલ્ટિમીટર અને માપવાની વસ્તુ"></svg></div>
+      <div class="msg" id="msg"></div>
+      <div class="danger" id="danger">
+        <h2 id="dTitle">⚠️ ખતરો!</h2>
+        <p id="dText"></p>
+        <button id="dOk">સમજાયું, ફરી પ્રયત્ન કરું</button>
+      </div>
+    </div>
+
+    <div class="ctrl">
+      <button id="dialL">◀ ડાયલ ફેરવો</button>
+      <button id="dialR">ડાયલ ફેરવો ▶</button>
+      <button id="conn" class="big">🔌 પ્રોબ લગાડો</button>
+    </div>
+    <div class="lbl">લાલ પ્રોબ કયા જેકમાં?</div>
+    <div class="seg" id="jackSeg">
+      <button data-j="V">VΩmA</button>
+      <button data-j="A">10A</button>
+    </div>
+    <div id="polBox">
+      <div class="lbl">પ્રોબની દિશા</div>
+      <div class="seg" id="polSeg">
+        <button data-p="0">લાલ + / કાળો −</button>
+        <button data-p="1">ઉલટા</button>
+      </div>
+    </div>
+    <div id="serBox">
+      <div class="lbl">મીટર કેવી રીતે જોડવું?</div>
+      <div class="seg" id="serSeg">
+        <button data-s="0">બલ્બની આજુબાજુ (સમાંતર)</button>
+        <button data-s="1">સર્કિટ ખોલીને (સીરીઝ)</button>
+      </div>
+    </div>
+    <button class="fixbtn hide" id="fixFuse">🔧 મીટરનો અંદરનો ફ્યુઝ બદલો</button>
+
+    <!-- learn -->
+    <section id="learnBox">
+      <div class="card">
+        <h2 id="stTitle">પગલાં</h2>
+        <ol class="steps" id="steps"></ol>
+      </div>
+      <div class="card result hide" id="result"></div>
+      <div class="card">
+        <h2>ધ્યાનમાં રાખો</h2>
+        <ul class="tips" id="tips"></ul>
+      </div>
+    </section>
+
+    <!-- practice -->
+    <section id="pracBox" class="hide">
+      <div class="card">
+        <h2>માપો અને જવાબ આપો</h2>
+        <div id="qText"></div>
+        <div class="opts" id="opts"></div>
+        <div class="fb" id="qFb"></div>
+        <button class="btn" id="qNew">નવો પ્રશ્ન</button>
+        <div class="score" id="qScore">સાચા: 0 / 0</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- safety -->
+  <section id="safeBox" class="hide">
+    <div class="card">
+      <h2>સલામતીના 10 સોનેરી નિયમ</h2>
+      <ol class="rules">
+        <li><b>માપતા પહેલા વિચારો</b><span>AC છે કે DC? આશરે કેટલા વોલ્ટ કે એમ્પિયર? પછી જ ડાયલ ફેરવો.</span></li>
+        <li><b>મીટર પહેલા ચકાસો</b><span>જાણીતા સ્ત્રોત (જેમ કે બેટરી) પર માપીને ખાતરી કરો કે મીટર બરાબર ચાલે છે.</span></li>
+        <li><b>તૂટેલા પ્રોબ ક્યારેય નહીં</b><span>વાયરનું ઇન્સ્યુલેશન કપાયેલું હોય તો તરત બદલો.</span></li>
+        <li><b>આંગળી ફિંગર ગાર્ડની પાછળ</b><span>પ્રોબની ધાતુવાળી ટોચને ક્યારેય અડશો નહીં.</span></li>
+        <li><b>વોલ્ટેજ સમાંતર, કરંટ સીરીઝમાં</b><span>કરંટ મોડમાં મીટર બેટરી કે સોકેટની આજુબાજુ લગાડશો તો શોર્ટ સર્કિટ થશે.</span></li>
+        <li><b>Ω અને બીપ ફક્ત પાવર બંધ હોય ત્યારે</b><span>ચાલુ સર્કિટમાં રેઝિસ્ટન્સ માપવાથી ખોટું રીડિંગ આવે અને મીટર બગડી શકે.</span></li>
+        <li><b>કામ પૂરું થાય એટલે લાલ પ્રોબ VΩ જેકમાં અને ડાયલ OFF</b><span>10A જેકમાં ભૂલાઈ ગયેલો પ્રોબ મીટર બળવાનું સૌથી મોટું કારણ છે.</span></li>
+        <li><b>અજાણ્યો કરંટ? 10A થી શરૂ કરો</b><span>mA જેકમાં વધુ કરંટ જાય તો અંદરનો ફ્યુઝ તરત ઉડે છે.</span></li>
+        <li><b>યોગ્ય CAT રેટિંગ</b><span>ઘર અને વર્કશોપ માટે CAT II / CAT III 600V રેટિંગવાળું મીટર વાપરો. ફ્યુઝ બદલો તો એ જ રેટિંગનો.</span></li>
+        <li><b>વીંટી, ઘડિયાળ કાઢો, હાથ સૂકા રાખો</b><span>બેટરી ટર્મિનલ પર ધાતુની વીંટી શોર્ટ થાય તો ગંભીર રીતે દાઝી શકાય.</span></li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>ડાયલનાં ચિહ્નો</h2>
+      <table class="ref">
+        <tr><td>V⎓</td><td>DC વોલ્ટેજ – બેટરી, વાહનની વાયરિંગ</td></tr>
+        <tr><td>V~</td><td>AC વોલ્ટેજ – ઘરનો સોકેટ, 230V</td></tr>
+        <tr><td>Ω</td><td>રેઝિસ્ટન્સ – પાવર બંધ રાખીને</td></tr>
+        <tr><td>🔊</td><td>કન્ટિન્યુઈટી – વાયર કે ફ્યુઝ જોડાયેલો છે? બીપ = હા</td></tr>
+        <tr><td>mA</td><td>નાનો કરંટ (400 mA સુધી) – VΩmA જેક</td></tr>
+        <tr><td>A</td><td>મોટો કરંટ (10 A સુધી) – 10A જેક</td></tr>
+        <tr><td>OL</td><td>ઓવર લિમિટ – રેન્જની બહાર કે સર્કિટ ખુલ્લી</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <a href="https://ashish119055.github.io/Micrometer/">માઇક્રોમીટર સિમ્યુલેટર</a><br>
+    Mechanic Diesel, Government ITI Maninagar
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const NS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+const el=(tag,a,p,t)=>{const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;if(p)p.appendChild(e);return e;};
+const cs=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const noise=a=>(Math.random()*2-1)*a;
+
+/* ---------------- state ---------------- */
+const DIAL=["OFF","VAC","VDC","OHM","CONT","MA","A10"];
+const DLAB={OFF:"OFF",VAC:"V~",VDC:"V⎓",OHM:"Ω",CONT:"🔊",MA:"mA",A10:"A"};
+const S={tab:"learn",task:"battery",mode:"OFF",red:"V",conn:false,rev:false,series:false,
+  fMA:true,f10:true,vals:{},manual:{},danger:null,quiz:null,score:[0,0],answered:false};
+
+/* ---------------- resistor helpers ---------------- */
+const BAND=["#111","#7B3F00","#D32F2F","#F57C00","#FDD835","#2E7D32","#1565C0","#7B1FA2","#8D8D8D","#FAFAFA"];
+const BNAME=["કાળો","કથ્થઈ","લાલ","નારંગી","પીળો","લીલો","વાદળી","જાંબલી","રાખોડી","સફેદ"];
+function bands(R){const e=Math.floor(Math.log10(R))-1;const d1=Math.floor(R/Math.pow(10,e+1));const d2=Math.floor(R/Math.pow(10,e))%10;return [d1,d2,e];}
+function ohmLabel(r){return r>=1e6?(r/1e6)+" MΩ":r>=1000?(r/1000)+" kΩ":r+" Ω";}
+
+/* ---------------- tasks ---------------- */
+const T={
+ battery:{name:"🔋 બેટરી વોલ્ટેજ",
+  gen:p=>({v:p?pick([12.68,12.41,12.18,11.86]):12.64}),
+  src:v=>({kind:"dc",v:v.v}),
+  steps:[
+   {t:"કાળો પ્રોબ COM જેકમાં રાખો (કાળો હંમેશા COM માં જ).",c:()=>true},
+   {t:"લાલ પ્રોબ VΩmA જેકમાં મૂકો.",c:()=>S.red==="V",hl:"jack-V"},
+   {t:"ડાયલ V⎓ (DC વોલ્ટ) પર ફેરવો.",c:()=>S.mode==="VDC",hl:"dial-VDC"},
+   {t:"લાલ પ્રોબ + ટર્મિનલ પર અને કાળો − ટર્મિનલ પર લગાડો.",c:()=>S.conn&&!S.rev,hl:"conn"}
+  ],
+  tips:["− ચિહ્ન દેખાય તો પ્રોબ ઉલટા લાગ્યા છે. DC માં મીટરને નુકસાન નથી, ફક્ત દિશા બદલો.",
+        "સાચા રીડિંગ માટે એન્જિન બંધ કર્યા પછી થોડી વાર રાહ જુઓ.",
+        "ટર્મિનલ પર કાટ હોય તો સાફ કરીને માપો."],
+  table:[[12.6,"ફુલ ચાર્જ (આશરે 100%)"],[12.35,"આશરે 75% – ચાલે"],[12.1,"આશરે 50% – ચાર્જ કરો"],[0,"ડિસ્ચાર્જ – તરત ચાર્જ કરો અને તપાસો"]],
+  interpret(v){const r=this.table.find(x=>v.v>=x[0]);return `બેટરીમાં <b>${v.v.toFixed(2)} V</b> છે → <b>${r[1]}</b>.<br><small>12.6 V+ ફુલ, 12.4 V આશરે 75%, 12.2 V આશરે 50%, 12.0 V થી નીચે ડિસ્ચાર્જ.</small>`;},
+  quiz(v){const i=this.table.findIndex(x=>v.v>=x[0]);return {q:"બેટરીની સ્થિતિ શું છે? મીટરથી માપીને નક્કી કરો.",o:this.table.map(x=>x[1]),a:i,ex:this.interpret(v)};}
+ },
+ charging:{name:"⚙️ ચાર્જિંગ સિસ્ટમ",
+  gen:p=>({v:p?pick([14.12,12.42,15.08]):14.12}),
+  src:v=>({kind:"dc",v:v.v,jit:.02}),
+  steps:[
+   {t:"લાલ પ્રોબ VΩmA જેકમાં, કાળો COM માં.",c:()=>S.red==="V",hl:"jack-V"},
+   {t:"ડાયલ V⎓ (DC વોલ્ટ) પર ફેરવો.",c:()=>S.mode==="VDC",hl:"dial-VDC"},
+   {t:"એન્જિન ચાલુ (આશરે 1500–2000 RPM) રાખીને બેટરીના + અને − પર પ્રોબ લગાડો.",c:()=>S.conn&&!S.rev,hl:"conn"}
+  ],
+  tips:["ફરતા બેલ્ટ અને પંખાથી હાથ અને પ્રોબનો વાયર દૂર રાખો.",
+        "હેડલાઇટ અને AC ચાલુ કરીને ફરી માપો. વોલ્ટેજ આશરે 13.5 V થી નીચે ન જવો જોઈએ.",
+        "એન્જિન ચાલુ હોય ત્યારે બેટરી ટર્મિનલ ક્યારેય ખોલશો નહીં."],
+  cls(v){return v.v>14.7?2:v.v<13.3?1:0;},
+  opts:["ચાર્જિંગ બરાબર છે (આશરે 13.8–14.6 V)","અલ્ટરનેટર ચાર્જ નથી કરતું","ઓવરચાર્જિંગ – રેગ્યુલેટર તપાસો"],
+  interpret(v){return `એન્જિન ચાલુ હાલતમાં <b>${v.v.toFixed(2)} V</b> → <b>${this.opts[this.cls(v)]}</b>.<br><small>એન્જિન ચાલુ હોય ત્યારે સામાન્ય રીતે 13.8 થી 14.6 V આવવા જોઈએ.</small>`;},
+  quiz(v){return {q:"ચાર્જિંગ સિસ્ટમ બરાબર કામ કરે છે?",o:this.opts,a:this.cls(v),ex:this.interpret(v)};}
+ },
+ socket:{name:"🏠 સોકેટ 230V AC",
+  gen:p=>({v:p?pick([231.4,191.6,263.8]):231.4}),
+  src:v=>({kind:"ac",v:v.v,jit:.6}),
+  steps:[
+   {t:"પ્રોબ અને વાયરનું ઇન્સ્યુલેશન તપાસો – ક્યાંય કપાયેલું નથી ને?",m:"insul"},
+   {t:"લાલ પ્રોબ VΩmA જેકમાં મૂકો (10A માં ભૂલથી પણ નહીં).",c:()=>S.red==="V",hl:"jack-V"},
+   {t:"ડાયલ V~ (AC વોલ્ટ) પર ફેરવો.",c:()=>S.mode==="VAC",hl:"dial-VAC"},
+   {t:"આંગળીઓ પ્રોબના ફિંગર ગાર્ડની પાછળ રાખો.",m:"guard"},
+   {t:"પ્રોબ સોકેટના L અને N છિદ્રમાં દાખલ કરો.",c:()=>S.conn,hl:"conn"}
+  ],
+  tips:["CAT II / CAT III 600V રેટિંગવાળું મીટર જ વાપરો.",
+        "ભીના હાથે કે ભીની જગ્યાએ ક્યારેય માપશો નહીં.",
+        "AC માં પ્રોબ ઉલટા થાય તો રીડિંગમાં ફરક પડતો નથી."],
+  cls(v){return v.v<207?1:v.v>253?2:0;},
+  opts:["સામાન્ય (આશરે 216–244 V)","ઓછું વોલ્ટેજ","વધુ વોલ્ટેજ – ઉપકરણ બગડી શકે"],
+  interpret(v){return `સોકેટમાં <b>${v.v.toFixed(1)} V AC</b> → <b>${this.opts[this.cls(v)]}</b>.<br><small>ભારતમાં ઘરનો સપ્લાય 230 V (±10%) હોય છે.</small>`;},
+  quiz(v){return {q:"સોકેટનો વોલ્ટેજ કેવો છે?",o:this.opts,a:this.cls(v),ex:this.interpret(v)};}
+ },
+ resistor:{name:"〰️ રેઝિસ્ટર",
+  gen:p=>{const r=p?pick([220,470,1000,2200,4700,10000,47000,100000]):4700;return {r,m:r*(1+noise(.03))};},
+  src:v=>({kind:"passive",r:v.m}),
+  steps:[
+   {t:"પાવર બંધ કરો અને રેઝિસ્ટર સર્કિટમાંથી બહાર કાઢો.",m:"off"},
+   {t:"લાલ પ્રોબ VΩmA જેકમાં મૂકો.",c:()=>S.red==="V",hl:"jack-V"},
+   {t:"ડાયલ Ω પર ફેરવો.",c:()=>S.mode==="OHM",hl:"dial-OHM"},
+   {t:"બંને પ્રોબ રેઝિસ્ટરના બે છેડે અડાડો.",c:()=>S.conn,hl:"conn"}
+  ],
+  tips:["બંને છેડા આંગળીથી ન પકડો. શરીરનો રેઝિસ્ટન્સ ભળીને રીડિંગ ઓછું આવે.",
+        "સોનેરી પટ્ટી = ±5% ટોલરન્સ, એટલે થોડો ફરક સામાન્ય છે.",
+        "Ω માં પ્રોબની દિશાથી ફરક પડતો નથી."],
+  interpret(v){const [a,b,e]=bands(v.r);const ok=Math.abs(v.m-v.r)/v.r<=.05;
+   return `કલર કોડ: ${BNAME[a]}–${BNAME[b]}–${BNAME[e]}–સોનેરી = <b>${ohmLabel(v.r)}</b> ±5%<br>મીટર: <b>${fmtR(v.m).join(" ")}</b> → ${ok?"✅ ટોલરન્સની અંદર, રેઝિસ્ટર બરાબર છે":"❌ ટોલરન્સ બહાર, બદલો"}`;},
+  quiz(v){const all=[220,470,1000,2200,4700,10000,47000,100000];let o=[v.r];
+   while(o.length<4){const x=pick(all);if(!o.includes(x))o.push(x);} o.sort((x,y)=>x-y);
+   return {q:"આ રેઝિસ્ટરની કિંમત કેટલી છે? (કલર કોડ અને મીટર બંનેથી ચકાસો)",o:o.map(ohmLabel),a:o.indexOf(v.r),ex:this.interpret(v)};}
+ },
+ fuse:{name:"🔸 ફ્યુઝ ચેક",
+  gen:p=>({good:p?Math.random()<.5:true}),
+  src:v=>({kind:"passive",r:v.good?0.08:Infinity}),
+  steps:[
+   {t:"ફ્યુઝ બોક્સમાંથી ફ્યુઝ બહાર કાઢો.",m:"out"},
+   {t:"લાલ પ્રોબ VΩmA જેકમાં મૂકો.",c:()=>S.red==="V",hl:"jack-V"},
+   {t:"ડાયલ 🔊 (કન્ટિન્યુઈટી) પર ફેરવો.",c:()=>S.mode==="CONT",hl:"dial-CONT"},
+   {t:"બંને પ્રોબ એકબીજાને અડાડો – બીપ વાગે તો મીટર બરાબર છે.",m:"self"},
+   {t:"પ્રોબ ફ્યુઝના બંને પગ પર લગાડો.",c:()=>S.conn,hl:"conn"}
+  ],
+  tips:["બીપ વાગે = ફ્યુઝ સારો. OL દેખાય = ફ્યુઝ ઉડી ગયો.",
+        "નવો ફ્યુઝ એ જ એમ્પિયર (રંગ) નો નાખો, મોટો ક્યારેય નહીં.",
+        "ફ્યુઝ વારંવાર ઉડે તો વાયરિંગમાં શોર્ટ શોધો."],
+  interpret(v){return v.good?"🔊 બીપ વાગ્યો, આશરે 0 Ω → <b>ફ્યુઝ સારો છે</b>.":"OL, બીપ નહીં → <b>ફ્યુઝ ઉડી ગયો છે</b>. એ જ રેટિંગનો નવો નાખો.";},
+  quiz(v){return {q:"આ ફ્યુઝ સારો છે કે ઉડી ગયો? (બહારથી દેખાતું નથી, માપીને કહો)",o:["ફ્યુઝ સારો છે","ફ્યુઝ ઉડી ગયો છે"],a:v.good?0:1,ex:this.interpret(v)};}
+ },
+ headlight:{name:"💡 હેડલાઇટ કરંટ",
+  gen:p=>({w:p?pick([21,35,55,60]):55}),
+  src:v=>S.series?{kind:"series",v:12.6,i:v.w/12.3,jit:.004}:{kind:"dc",v:12.3,jit:.01},
+  steps:[
+   {t:"લાલ પ્રોબ 10A જેકમાં મૂકો (કરંટ અજાણ્યો હોય તો હંમેશા 10A થી શરૂ કરો).",c:()=>S.red==="A",hl:"jack-A"},
+   {t:"ડાયલ A (DC એમ્પિયર) પર ફેરવો.",c:()=>S.mode==="A10",hl:"dial-A10"},
+   {t:"જોડાણ “સર્કિટ ખોલીને (સીરીઝ)” પસંદ કરો.",c:()=>S.series,hl:"series"},
+   {t:"ખુલેલા વાયરના બે છેડે પ્રોબ લગાડો – લાલ બેટરી તરફ, કાળો બલ્બ તરફ.",c:()=>S.conn&&!S.rev,hl:"conn"}
+  ],
+  tips:["કરંટ માપતી વખતે મીટર હંમેશા સીરીઝમાં. બેટરી કે બલ્બની આજુબાજુ ક્યારેય નહીં.",
+        "10A રેન્જ પર 30 સેકન્ડથી વધુ સતત ન માપો, મીટર ગરમ થાય.",
+        "કામ પૂરું થાય એટલે લાલ પ્રોબ પાછો VΩmA જેકમાં મૂકો."],
+  interpret(v){const i=v.w/12.3;return `કરંટ <b>${i.toFixed(2)} A</b>.<br>પાવર P = V × I = 12.3 × ${i.toFixed(2)} ≈ <b>${v.w} W</b> નો બલ્બ.`;},
+  quiz(v){return {q:"કરંટ માપીને કહો: બલ્બ કેટલા વોટનો છે? (P = V × I, V ≈ 12.3 V)",o:["21 W","35 W","55 W","60 W"],a:[21,35,55,60].indexOf(v.w),ex:this.interpret(v)};}
+ }
+};
+
+/* ---------------- formatting ---------------- */
+function fV(v){const a=Math.abs(v);const s=a<6?a.toFixed(3):a<60?a.toFixed(2):a<600?a.toFixed(1):a.toFixed(0);return (v<0?"-":"")+s;}
+function fR(r){if(r<600)return [r.toFixed(1),"Ω"];if(r<6000)return [(r/1e3).toFixed(3),"kΩ"];if(r<6e4)return [(r/1e3).toFixed(2),"kΩ"];if(r<6e5)return [(r/1e3).toFixed(1),"kΩ"];return [(r/1e6).toFixed(3),"MΩ"];}
+const fmtR=fR;
+function fA(i){const a=Math.abs(i);return (i<0?"-":"")+(a<6?a.toFixed(3):a.toFixed(2));}
+
+/* ---------------- measurement engine ---------------- */
+function measure(){
+  const m=S.mode, src=T[S.task].src(S.vals), sgn=S.rev?-1:1;
+  const r={txt:"",unit:"",ann:[],warn:null,info:null,beep:false,bulb:"on",event:null};
+  const j=x=>x+(src.jit?noise(src.jit):0);
+  if(S.task==="headlight"&&S.series) r.bulb="off";
+  if(m==="OFF"){return r;}
+  r.ann.push("AUTO");
+  if(["VDC","MA","A10"].includes(m))r.ann.push("DC");
+  if(m==="VAC")r.ann.push("AC");
+  if(m==="CONT")r.ann.push("BEEP");
+  const blank=()=>{
+    if(m==="VDC"||m==="VAC"){r.txt="0.000";r.unit=m==="VAC"?"V~":"V";}
+    else if(m==="OHM"){r.txt="OL";r.unit="MΩ";}
+    else if(m==="CONT"){r.txt="OL";r.unit="Ω";}
+    else if(m==="MA"){r.txt="0.0";r.unit="mA";}
+    else {r.txt="0.000";r.unit="A";}
+  };
+  const short=(fuse)=>{
+    const ac=src.kind==="ac";
+    r.event={fuse,title:ac?"💥 ગંભીર ખતરો!":"⚡ શોર્ટ સર્કિટ!",
+      text:ac?"કરંટ મોડ (ઓછો રેઝિસ્ટન્સ) માં મીટર 230V સોકેટ પર લાગ્યું. અસલમાં અહીં આર્ક ફ્લેશ થાય, મીટર ફાટી શકે અને ગંભીર રીતે દાઝી શકાય.":
+        "કરંટ માપવાના જેક/મોડમાં મીટર સ્ત્રોતની આજુબાજુ (સમાંતર) લાગ્યું. મીટર લગભગ 0 Ω નું હોવાથી સીધો શોર્ટ થયો અને મીટરનો અંદરનો ફ્યુઝ ઉડી ગયો."};
+  };
+  const live=src.kind==="dc"||src.kind==="ac";
+
+  if(!S.conn){
+    blank();
+    if(S.red==="A"&&m!=="A10") r.warn="લાલ પ્રોબ 10A જેકમાં છે પણ ડાયલ A પર નથી. આ રીતે વોલ્ટેજ માપશો તો શોર્ટ થશે!";
+    if(S.red==="V"&&m==="A10") r.warn="A (10A) માટે લાલ પ્રોબ 10A જેકમાં મૂકો.";
+    if(S.task==="headlight"&&S.series) r.info="સર્કિટ ખુલ્લી છે, એટલે બલ્બ બંધ છે. મીટર જોડશો એટલે સર્કિટ પૂરી થશે.";
+    return r;
+  }
+
+  // red probe in 10A jack but dial not on A
+  if(S.red==="A"&&m!=="A10"){
+    if(live){short("f10");return r;}
+    blank();
+    if(src.kind==="series"){ if(S.f10){r.bulb="on";} r.warn="લાલ પ્રોબ 10A જેકમાં છે પણ ડાયલ A પર નથી. ડાયલ A પર ફેરવો."; }
+    else r.warn="લાલ પ્રોબ 10A જેકમાં છે. V, Ω અને 🔊 માટે લાલ પ્રોબ VΩmA જેકમાં મૂકો.";
+    return r;
+  }
+
+  if(m==="MA"||m==="A10"){
+    const fuseKey=m==="MA"?"fMA":"f10", fuseName=m==="MA"?"fMA":"f10";
+    if(m==="A10"&&S.red==="V"){blank();r.warn="ડાયલ A પર છે પણ લાલ પ્રોબ VΩmA જેકમાં છે. 10A જેકમાં મૂકો.";return r;}
+    if(!S[fuseKey]){blank();r.warn="મીટરનો અંદરનો ફ્યુઝ ઉડેલો છે, એટલે કરંટ 0 બતાવે છે. પહેલા ફ્યુઝ બદલો.";return r;}
+    if(live){short(fuseName);return r;}
+    if(src.kind==="passive"){blank();r.info="આ વસ્તુમાં પાવર નથી, એટલે કરંટ વહેતો નથી.";return r;}
+    // series
+    const I=src.i;
+    if(m==="MA"&&I>0.4){
+      r.event={fuse:"fMA",title:"🔥 mA ફ્યુઝ ઉડી ગયો!",text:`હેડલાઇટનો કરંટ આશરે ${I.toFixed(1)} A છે, જ્યારે mA રેન્જ ફક્ત 400 mA સુધીની છે. અજાણ્યો કરંટ હોય તો હંમેશા 10A જેક અને A રેન્જથી શરૂ કરો.`};
+      return r;
+    }
+    r.bulb="on";
+    if(m==="MA"){r.txt=(sgn*j(I)*1000).toFixed(1);r.unit="mA";}
+    else {r.txt=fA(sgn*j(I));r.unit="A";}
+    if(S.rev) r.info="− ચિહ્ન: કરંટ ઉલટી દિશામાં મીટરમાં જાય છે. લાલ પ્રોબ બેટરી તરફ રાખો.";
+    return r;
+  }
+
+  if(m==="VDC"){
+    r.unit="V";
+    if(src.kind==="dc"){r.txt=fV(sgn*j(src.v));if(S.rev)r.info="− ચિહ્ન: પ્રોબ ઉલટા લાગ્યા છે. લાલ + પર અને કાળો − પર મૂકો.";}
+    else if(src.kind==="ac"){r.txt=fV(noise(.4));r.warn="આ AC સપ્લાય છે. ડાયલ V~ પર ફેરવો, નહીંતર સાચું રીડિંગ નહીં આવે.";}
+    else if(src.kind==="series"){r.txt=fV(sgn*src.v);r.bulb="off";r.info="વોલ્ટમીટર સીરીઝમાં લાગ્યું: મીટરનો રેઝિસ્ટન્સ બહુ વધારે હોવાથી બલ્બ બંધ છે અને આખી બેટરીનો વોલ્ટેજ દેખાય છે. કરંટ માપવા ડાયલ A પર કરો.";}
+    else {r.txt="0.000";r.info="આ વસ્તુમાં પાવર નથી, એટલે વોલ્ટેજ 0 છે.";}
+    return r;
+  }
+  if(m==="VAC"){
+    r.unit="V~";
+    if(src.kind==="ac"){r.txt=fV(j(src.v));}
+    else if(src.kind==="dc"||src.kind==="series"){r.txt="0.000";r.warn="આ DC સપ્લાય છે. ડાયલ V⎓ પર ફેરવો.";if(src.kind==="series")r.bulb="off";}
+    else {r.txt="0.000";r.info="આ વસ્તુમાં પાવર નથી.";}
+    return r;
+  }
+  // OHM / CONT
+  if(live||src.kind==="series"){
+    r.txt="----";r.unit="Ω";
+    if(src.kind==="ac"){
+      r.event={fuse:null,title:"❌ ખોટો મોડ – ખતરો!",text:"ચાલુ 230V સોકેટ પર Ω / કન્ટિન્યુઈટી મોડ! સારા મીટરમાં પ્રોટેક્શન હોય, પણ સામાન્ય મીટર અહીં બળી જાય. Ω અને બીપ ફક્ત પાવર બંધ હોય ત્યારે જ વાપરો."};
+    } else r.warn="ચાલુ સર્કિટ પર Ω કે 🔊 નહીં! પાવર બંધ કરો અથવા વસ્તુ સર્કિટમાંથી કાઢો. ખોટું રીડિંગ આવે અને મીટર બગડી શકે.";
+    if(src.kind==="series")r.bulb="off";
+    return r;
+  }
+  const R=src.r;
+  if(m==="OHM"){ if(!isFinite(R)){r.txt="OL";r.unit="MΩ";} else {const f=fR(R);r.txt=f[0];r.unit=f[1];} }
+  else { if(R<30){r.txt=R.toFixed(1);r.unit="Ω";r.beep=true;} else {r.txt="OL";r.unit="Ω";} }
+  return r;
+}
+
+/* ---------------- drawing: object ---------------- */
+function drawObj(res,s){
+  const ink=cs("--ink"),mut=cs("--muted");
+  const lab=(x,y,t,sz,col,anc)=>el("text",{x,y,"font-size":sz||11,fill:col||mut,"text-anchor":anc||"middle","font-weight":600},s,t);
+  let P=null; // [redPoint, blackPoint]
+  const t=S.task, v=S.vals, practice=S.tab==="practice";
+  if(t==="battery"||t==="charging"){
+    el("rect",{x:110,y:52,width:140,height:82,rx:6,fill:"#2B3440"},s);
+    el("rect",{x:110,y:52,width:140,height:14,rx:4,fill:"#39434F"},s);
+    el("rect",{x:132,y:38,width:18,height:16,rx:2,fill:"#9AA3AA"},s);
+    el("rect",{x:210,y:38,width:18,height:16,rx:2,fill:"#9AA3AA"},s);
+    lab(141,32,"+",16,"#D32F2F");lab(219,32,"−",16,ink);
+    lab(180,100,"12V",18,"#fff");lab(180,120,"BATTERY",9,"#9AA3AA");
+    P=[[141,40],[219,40]];
+    if(t==="charging"){
+      const g=el("g",{},s);
+      el("circle",{cx:55,cy:88,r:28,fill:"#8C969D",stroke:"#5E6870","stroke-width":2},g);
+      const sp=el("g",{class:"spin"},g);
+      for(let k=0;k<6;k++){const a=k*Math.PI/3;el("line",{x1:55,y1:88,x2:55+22*Math.cos(a),y2:88+22*Math.sin(a),stroke:"#4A545C","stroke-width":3},sp);}
+      el("circle",{cx:55,cy:88,r:6,fill:"#4A545C"},g);
+      lab(55,135,"અલ્ટરનેટર",10);lab(55,48,"એન્જિન ચાલુ",10,cs("--ok"));
+      el("path",{d:"M83 80 L110 70 M83 96 L110 110",stroke:"#D32F2F","stroke-width":2,fill:"none","stroke-dasharray":"4 3"},s);
+    }
+  } else if(t==="socket"){
+    el("rect",{x:112,y:18,width:136,height:130,rx:12,fill:"#F2F2EE",stroke:"#BDBDB5"},s);
+    el("rect",{x:218,y:30,width:20,height:34,rx:3,fill:"#E0E0DA",stroke:"#AAA"},s);
+    el("rect",{x:221,y:33,width:14,height:12,rx:2,fill:"#C62828"},s);
+    el("circle",{cx:170,cy:62,r:9,fill:"#333"},s);
+    el("circle",{cx:150,cy:104,r:6,fill:"#333"},s);
+    el("circle",{cx:190,cy:104,r:6,fill:"#333"},s);
+    lab(170,46,"E",10);lab(138,124,"L",11);lab(202,124,"N",11);
+    lab(180,166,"230V AC",11,"#C62828");
+    P=[[150,104],[190,104]];
+  } else if(t==="resistor"){
+    el("line",{x1:40,y1:80,x2:320,y2:80,stroke:"#A7ADB2","stroke-width":3},s);
+    el("rect",{x:125,y:62,width:110,height:36,rx:16,fill:"#E3C99A",stroke:"#B9A06F"},s);
+    const [a,b,e]=bands(v.r);
+    [[148,BAND[a]],[166,BAND[b]],[184,BAND[e]],[212,"#C9A227"]].forEach(([x,c])=>el("rect",{x,y:62,width:8,height:36,fill:c},s));
+    if(!practice)lab(180,122,`${BNAME[a]} – ${BNAME[b]} – ${BNAME[e]} – સોનેરી`,11);
+    else lab(180,122,"કલર કોડ વાંચો અને મીટરથી ચકાસો",11);
+    P=[[70,80],[290,80]];
+  } else if(t==="fuse"){
+    el("rect",{x:148,y:34,width:64,height:66,rx:6,fill:"#1E6FD9"},s);
+    el("rect",{x:160,y:44,width:40,height:18,rx:3,fill:"#9CC3F2"},s);
+    if(!practice){
+      if(v.good) el("path",{d:"M163 53 H178 L182 49 L186 57 L190 53 H197",stroke:"#B0B8BE","stroke-width":2.5,fill:"none"},s);
+      else {el("path",{d:"M163 53 H176 L179 49",stroke:"#B0B8BE","stroke-width":2.5,fill:"none"},s);
+            el("path",{d:"M186 57 L189 53 H197",stroke:"#B0B8BE","stroke-width":2.5,fill:"none"},s);
+            el("circle",{cx:182,cy:53,r:4,fill:"#555",opacity:.6},s);}
+    } else el("rect",{x:160,y:44,width:40,height:18,rx:3,fill:"#5B7DA6"},s);
+    lab(180,86,"15A",14,"#fff");
+    el("rect",{x:156,y:100,width:14,height:40,fill:"#C4CBD1"},s);
+    el("rect",{x:190,y:100,width:14,height:40,fill:"#C4CBD1"},s);
+    lab(180,162,practice?"અંદરનો તાર દેખાતો નથી – માપીને નક્કી કરો":"ફ્યુઝ બહાર કાઢેલો છે",10);
+    P=[[163,132],[197,132]];
+  } else if(t==="headlight"){
+    const on=res.bulb==="on";
+    // battery
+    el("rect",{x:28,y:62,width:42,height:52,rx:4,fill:"#2B3440"},s);
+    lab(49,94,"12V",11,"#fff");lab(49,56,"+",13,"#D32F2F");lab(49,128,"−",13,ink);
+    // wires
+    const w=(d)=>el("path",{d,stroke:"#546E7A","stroke-width":3,fill:"none","stroke-linejoin":"round"},s);
+    w("M49 62 V36 H"+(S.series?"160":"300")+(S.series?"":" V62"));
+    if(S.series) w("M200 36 H300 V62");
+    w("M49 114 V142 H300 V108");
+    if(S.series){el("circle",{cx:160,cy:36,r:4,fill:"#546E7A"},s);el("circle",{cx:200,cy:36,r:4,fill:"#546E7A"},s);lab(180,26,"ખુલ્લો",10);}
+    // bulb
+    if(on){el("circle",{cx:300,cy:85,r:34,fill:"#FFE082",opacity:.45},s);}
+    el("circle",{cx:300,cy:85,r:20,fill:on?"#FFD54F":"#CFD8DC",stroke:"#90A4AE","stroke-width":2},s);
+    el("path",{d:"M292 90 q8 -14 16 0",stroke:on?"#E65100":"#90A4AE","stroke-width":2,fill:"none"},s);
+    if(!(S.tab==="practice")) lab(300,128,v.w+" W",10);
+    lab(248,170,on?"બલ્બ ચાલુ":"બલ્બ બંધ",10,on?cs("--ok"):mut);
+    P=S.series?[[160,36],[200,36]]:[[300,62],[300,108]];
+  }
+  if(S.conn&&P) return {red:S.rev?P[1]:P[0],black:S.rev?P[0]:P[1]};
+  return null;
+}
+
+/* ---------------- drawing: probe wires (jack to tip) ---------------- */
+const OX=10, MX=40, MY=190; // object offset, meter offset
+function drawWires(tips,s){
+  s.innerHTML="";
+  const panel=cs("--panel");
+  const jackX={A:MX+78,COM:MX+150,V:MX+222}, jy=MY+352;
+  const restR=[OX+300,150], restB=[OX+60,150];
+  const wire=(from,tip,side,color,name,by)=>{
+    const [tx,ty]=tip; const x0=from, top=ty+30;
+    const r=12;
+    const d=`M${x0} ${jy} V${by-r} Q${x0} ${by} ${x0+(side>x0?r:-r)} ${by} H${side+(side>x0?-r:r)} Q${side} ${by} ${side} ${by-r} V${Math.max(top+40,190)} C ${side} ${top+10}, ${tx} ${top+30}, ${tx} ${top}`;
+    el("path",{d,fill:"none",stroke:panel,"stroke-width":8,"stroke-linecap":"round","stroke-linejoin":"round"},s);
+    el("path",{d,fill:"none",stroke:color,"stroke-width":4.5,"stroke-linecap":"round","stroke-linejoin":"round"},s);
+    // probe handle + tip
+    el("rect",{x:tx-5,y:ty+8,width:10,height:24,rx:4,fill:color,stroke:panel,"stroke-width":1},s);
+    el("rect",{x:tx-8,y:ty+13,width:16,height:4,rx:2,fill:color},s);
+    el("line",{x1:tx,y1:ty,x2:tx,y2:ty+9,stroke:"#B8C0C6","stroke-width":2.6,"stroke-linecap":"round"},s);
+    if(!tips) el("text",{x:tx,y:ty-4,"text-anchor":"middle","font-size":10,"font-weight":700,fill:color},s,name);
+  };
+  const red=tips?[tips.red[0]+OX,tips.red[1]]:restR;
+  const black=tips?[tips.black[0]+OX,tips.black[1]]:restB;
+  const blackCol=cs("--ink")==="#E5ECEF"?"#5A636B":"#1E2226";
+  const redLeft=red[0]<black[0];
+  wire(jackX.COM,black,redLeft?368:12,blackCol,"કાળો (COM)",MY+436);
+  wire(jackX[S.red],red,redLeft?20:360,"#D32F2F","લાલ",MY+424);
+}
+
+/* ---------------- drawing: meter ---------------- */
+function drawMeter(res,hlKey,s){
+  s.innerHTML="";
+  const defs=el("defs",{},s);
+  const g=el("linearGradient",{id:"kn",x1:0,y1:0,x2:0,y2:1},defs);
+  el("stop",{offset:0,"stop-color":"#4A535B"},g);el("stop",{offset:1,"stop-color":"#1C2126"},g);
+  // holster & body
+  el("rect",{x:8,y:4,width:284,height:400,rx:30,fill:"#E86A1F"},s);
+  el("rect",{x:24,y:18,width:252,height:372,rx:18,fill:"#2A3138"},s);
+  // LCD
+  el("rect",{x:42,y:34,width:216,height:96,rx:8,fill:"#1B2126"},s);
+  el("rect",{x:48,y:40,width:204,height:84,rx:5,fill:S.mode==="OFF"?"#8E9A86":"#B7C6A5"},s);
+  const lcd="#1A2418";
+  if(S.mode!=="OFF"){
+    el("text",{x:56,y:56,"font-size":10,"font-family":"'Share Tech Mono',monospace",fill:lcd},s,res.ann.filter(a=>a!=="BEEP").join("  "));
+    if(res.beep) el("text",{x:236,y:57,"font-size":12,"text-anchor":"end"},s,"🔊");
+    el("text",{x:214,y:106,"font-size":46,"text-anchor":"end","font-family":"'Share Tech Mono','Courier New',monospace",fill:lcd},s,res.txt);
+    el("text",{x:246,y:106,"font-size":15,"text-anchor":"end","font-family":"'Share Tech Mono',monospace",fill:lcd,"font-weight":700},s,res.unit);
+  }
+  el("text",{x:150,y:143,"font-size":9,"text-anchor":"middle",fill:"#8A96A0","letter-spacing":1},s,"ITI-DMM 6000  AUTO RANGE");
+  // dial
+  const cx=150,cy=247;
+  el("circle",{cx,cy,r:64,fill:"#20262C",stroke:"#3B444C","stroke-width":2},s);
+  DIAL.forEach((d,i)=>{
+    const a=(-135+i*45)*Math.PI/180, lx=cx+86*Math.sin(a), ly=cy-86*Math.cos(a)+5;
+    const on=S.mode===d, hl=hlKey==="dial-"+d;
+    const gg=el("g",{"data-dial":d},s);
+    el("circle",{cx:lx,cy:ly-5,r:17,fill:hl?"#FDD835":"transparent",opacity:hl?.35:1,class:hl?"hl":""},gg);
+    el("text",{x:lx,y:ly,"text-anchor":"middle","font-size":d==="OFF"?12:15,"font-weight":700,fill:on?"#FFB74D":"#E8ECEF"},gg,DLAB[d]);
+    el("circle",{cx:cx+66*Math.sin(a),cy:cy-66*Math.cos(a),r:2.2,fill:on?"#FFB74D":"#6B7680"},s);
+  });
+  const ang=(-135+DIAL.indexOf(S.mode)*45);
+  const kg=el("g",{transform:`rotate(${ang} ${cx} ${cy})`,"data-knob":"1",style:"cursor:pointer"},s);
+  el("circle",{cx,cy,r:48,fill:"url(#kn)",stroke:"#111","stroke-width":2},kg);
+  el("rect",{x:cx-9,y:cy-50,width:18,height:100,rx:9,fill:"#353D44"},kg);
+  el("rect",{x:cx-3,y:cy-48,width:6,height:24,rx:3,fill:"#FFB74D"},kg);
+  // jacks
+  const J=[["A",78,"10A","#D32F2F"],["COM",150,"COM","#111"],["V",222,"VΩmA","#D32F2F"]];
+  J.forEach(([k,x,name,ring])=>{
+    const hl=hlKey==="jack-"+k;
+    const gg=el("g",k==="COM"?{}:{"data-jack":k},s);
+    if(hl) el("circle",{cx:x,cy:352,r:22,fill:"#FDD835",opacity:.4,class:"hl"},gg);
+    el("circle",{cx:x,cy:352,r:15,fill:"#15191D",stroke:ring,"stroke-width":4},gg);
+    el("circle",{cx:x,cy:352,r:6,fill:"#050607"},gg);
+    const plugged=(k==="COM")||(S.red===k);
+    if(plugged) el("circle",{cx:x,cy:352,r:10,fill:k==="COM"?"#3A3F44":"#D32F2F",stroke:"#000","stroke-width":1},gg);
+    const blown=(k==="A"&&!S.f10)||(k==="V"&&!S.fMA);
+    el("text",{x,y:326,"text-anchor":"middle","font-size":11,"font-weight":700,fill:blown?"#FF8A80":"#C9D1D7"},gg,name+(blown?" ✕":""));
+  });
+  el("text",{x:78,y:384,"text-anchor":"middle","font-size":8,fill:"#E57373"},s,"10A MAX");
+  el("text",{x:222,y:384,"text-anchor":"middle","font-size":8,fill:"#E57373"},s,"600V MAX");
+  el("text",{x:150,y:398,"text-anchor":"middle","font-size":8,fill:"#FFE0CC"},s,"CAT III 600V");
+}
+
+/* ---------------- UI render ---------------- */
+let lastBeep=false, lastRes=null;
+function curHl(){
+  if(S.tab!=="learn")return null;
+  const st=T[S.task].steps;
+  for(const x of st){ if(!(x.m?S.manual[x.m]:x.c()))return x.m?null:x.hl||null; }
+  return null;
+}
+function render(){
+  let res=measure();
+  if(res.event){
+    if(res.event.fuse) S[res.event.fuse]=false;
+    S.conn=false;
+    $("dTitle").textContent=res.event.title; $("dText").textContent=res.event.text;
+    $("danger").classList.add("on");
+    const st=$("stage"); st.classList.remove("shake"); void st.offsetWidth; st.classList.add("shake");
+    if(navigator.vibrate)try{navigator.vibrate([120,60,200]);}catch(e){}
+    res=measure();
+  }
+  lastRes=res;
+  const hl=curHl();
+  const main=$("main"); main.innerHTML="";
+  el("line",{x1:0,y1:182,x2:380,y2:182,stroke:cs("--line"),"stroke-dasharray":"4 4"},main);
+  const gO=el("g",{transform:`translate(${OX},0)`},main);
+  const gM=el("g",{id:"gMeter",transform:`translate(${MX},${MY})`},main);
+  const gW=el("g",{},main);
+  const tips=drawObj(res,gO); drawMeter(res,hl,gM); drawWires(tips,gW);
+  const msg=$("msg"); msg.className="msg"; msg.textContent="";
+  if(res.warn){msg.className="msg warn";msg.textContent="⚠️ "+res.warn;}
+  else if(res.info){msg.className="msg info";msg.textContent="ℹ️ "+res.info;}
+  if(res.beep&&!lastBeep)beep(); lastBeep=res.beep;
+  // controls
+  const cb=$("conn"); cb.textContent=S.conn?"✋ પ્રોબ હટાવો":"🔌 પ્રોબ લગાડો"; cb.classList.toggle("off",S.conn);
+  cb.classList.toggle("hl",hl==="conn");
+  document.querySelectorAll("#jackSeg button").forEach(b=>{b.classList.toggle("on",b.dataset.j===S.red);b.classList.toggle("hl",hl==="jack-"+b.dataset.j);});
+  document.querySelectorAll("#polSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.p==="1")===S.rev));
+  document.querySelectorAll("#serSeg button").forEach(b=>{b.classList.toggle("on",(b.dataset.s==="1")===S.series);b.classList.toggle("hl",hl==="series"&&b.dataset.s==="1");});
+  $("serBox").classList.toggle("hide",S.task!=="headlight");
+  $("fixFuse").classList.toggle("hide",S.fMA&&S.f10);
+  renderSteps(); renderResult();
+}
+function renderSteps(){
+  const t=T[S.task], ol=$("steps"); ol.innerHTML="";
+  let cur=-1;
+  t.steps.forEach((x,i)=>{
+    const done=x.m?!!S.manual[x.m]:x.c();
+    if(!done&&cur<0)cur=i;
+    const li=document.createElement("li");
+    li.className=done?"done":(cur===i?"cur":"");
+    const sp=document.createElement("span");sp.textContent=x.t;li.appendChild(sp);
+    if(x.m&&!done){const b=document.createElement("button");b.className="tick";b.textContent="થઈ ગયું";
+      b.onclick=()=>{S.manual[x.m]=true;render();};li.appendChild(b);}
+    ol.appendChild(li);
+  });
+  const li=document.createElement("li");
+  li.className=cur<0?"done":"";
+  li.textContent="ડિસ્પ્લે પરનું રીડિંગ વાંચો અને સમજો.";
+  ol.appendChild(li);
+  $("tips").innerHTML=t.tips.map(x=>"<li>"+x+"</li>").join("");
+}
+function allDone(){return T[S.task].steps.every(x=>x.m?S.manual[x.m]:x.c());}
+function renderResult(){
+  const box=$("result");
+  if(S.tab==="learn"&&allDone()&&lastRes&&lastRes.txt){
+    box.classList.remove("hide");
+    box.innerHTML=`<h2>✅ શાબાશ! માપ મળી ગયું</h2><div class="val">${lastRes.txt} ${lastRes.unit}</div><p style="margin:.4em 0 0">${T[S.task].interpret(S.vals)}</p>`;
+  } else box.classList.add("hide");
+}
+
+/* ---------------- quiz ---------------- */
+function newQuiz(){
+  S.vals=T[S.task].gen(true); S.conn=false; S.answered=false;
+  S.quiz=T[S.task].quiz(S.vals);
+  $("qText").textContent=S.quiz.q;
+  const o=$("opts"); o.innerHTML="";
+  S.quiz.o.forEach((t,i)=>{const b=document.createElement("button");b.textContent=t;
+    b.onclick=()=>answer(i,b);o.appendChild(b);});
+  $("qFb").innerHTML=""; render();
+}
+function answer(i,b){
+  if(S.answered)return; S.answered=true; S.score[1]++;
+  const btns=[...$("opts").children];
+  btns[S.quiz.a].classList.add("right");
+  if(i===S.quiz.a){S.score[0]++;$("qFb").innerHTML="🎉 સાચો જવાબ! "+S.quiz.ex;}
+  else {b.classList.add("wrong");$("qFb").innerHTML="❌ ખોટો જવાબ. "+S.quiz.ex;}
+  $("qScore").textContent=`સાચા: ${S.score[0]} / ${S.score[1]}`;
+}
+
+/* ---------------- sound ---------------- */
+let ac=null;
+function beep(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.value=2700;g.gain.value=.05;
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.35);}catch(e){}}
+
+/* ---------------- events ---------------- */
+function setTask(k){
+  S.task=k; S.conn=false; S.rev=false; S.series=false; S.manual={};
+  document.querySelectorAll("#chips button").forEach(b=>b.classList.toggle("on",b.dataset.k===k));
+  if(S.tab==="practice") newQuiz(); else {S.vals=T[k].gen(false); render();}
+}
+const chips=$("chips");
+Object.keys(T).forEach(k=>{const b=document.createElement("button");b.textContent=T[k].name;b.dataset.k=k;b.onclick=()=>setTask(k);chips.appendChild(b);});
+
+function turn(d){const i=DIAL.indexOf(S.mode);S.mode=DIAL[Math.max(0,Math.min(DIAL.length-1,i+d))];render();}
+$("dialL").onclick=()=>turn(-1); $("dialR").onclick=()=>turn(1);
+$("main").addEventListener("click",e=>{
+  const d=e.target.closest("[data-dial]"); if(d){S.mode=d.dataset.dial;render();return;}
+  const j=e.target.closest("[data-jack]"); if(j){S.red=j.dataset.jack;render();return;}
+  if(e.target.closest("[data-knob]")){turn(S.mode===DIAL[DIAL.length-1]?-(DIAL.length-1):1);}
+});
+$("conn").onclick=()=>{S.conn=!S.conn;render();};
+$("jackSeg").onclick=e=>{const b=e.target.closest("button");if(b){S.red=b.dataset.j;render();}};
+$("polSeg").onclick=e=>{const b=e.target.closest("button");if(b){S.rev=b.dataset.p==="1";render();}};
+$("serSeg").onclick=e=>{const b=e.target.closest("button");if(b){S.series=b.dataset.s==="1";S.conn=false;render();}};
+$("fixFuse").onclick=()=>{S.fMA=true;S.f10=true;render();};
+$("dOk").onclick=()=>{$("danger").classList.remove("on");render();};
+$("qNew").onclick=newQuiz;
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  S.tab=b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  $("work").classList.toggle("hide",S.tab==="safety");
+  $("safeBox").classList.toggle("hide",S.tab!=="safety");
+  $("learnBox").classList.toggle("hide",S.tab!=="learn");
+  $("pracBox").classList.toggle("hide",S.tab!=="practice");
+  if(S.tab!=="safety") setTask(S.task);
+});
+
+setInterval(()=>{ if(S.conn&&S.mode!=="OFF"&&!$("danger").classList.contains("on")){const r=measure();if(!r.event){lastRes=r;const g=$("gMeter");if(g)drawMeter(r,curHl(),g);}} },800);
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",render);
+setTask("battery");
+})();
+</script>
+</body>
+</html>
